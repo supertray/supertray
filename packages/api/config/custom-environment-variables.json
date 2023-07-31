@@ -1,0 +1,62 @@
+{
+  "port": {
+    "__name": "PORT",
+    "__format": "number"
+  },
+  "host": "HOST",
+  "public": "PUBLIC_DIR",
+  "authentication": {
+    "secret": "FEATHERS_SECRET",
+    "jwtOptions": {
+      "expiresIn": "AUTH_TOKEN_EXPIRES_IN",
+      "audience": "AUTH_AUDIENCE"
+    }
+  },
+  "authExtension": {
+    "refreshTokenExpiresIn": "AUTH_REFRESH_TOKEN_EXPIRES_IN"
+  },
+  "users": {
+    "externalSignup": {
+      "__name": "USERS_EXTERNAL_SIGNUP",
+      "__format": "boolean"
+    }
+  },
+  "origins": {
+    "__name": "CORS_ORIGINS",
+    "__format": "array"
+  },
+  "paginate": {
+    "default": {
+      "__name": "PAGINATE_DEFAULT",
+      "__format": "number"
+    },
+    "max": {
+      "__name": "PAGINATE_MAX",
+      "__format": "number"
+    }
+  },
+  "postgresql": {
+    "client": "DB_CLIENT",
+    "connection": "DB_URL"
+  },
+  "mailer": {
+    "from": "EMAIL_FROM",
+    "host": "EMAIL_SMTP_HOST",
+    "port": {
+      "__name": "EMAIL_SMTP_PORT",
+      "__format": "number"
+    },
+    "secure": {
+      "__name": "EMAIL_SMTP_SECURE",
+      "__format": "boolean"
+    },
+    "requireTLS": {
+      "__name": "EMAIL_SMTP_REQUIRE_TLS",
+      "__format": "boolean"
+    },
+    "auth": {
+      "user": "EMAIL_SMTP_USER",
+      "pass": "EMAIL_SMTP_PASSWORD"
+    }
+  }
+}
