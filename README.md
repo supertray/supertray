@@ -70,6 +70,7 @@ Supertray is currently in development. The following features are planned:
   - [ ] OTP
   - [ ] SSO/OAuth
   - [ ] MFA
+  - [ ] API Keys 
 - [ ] Documents
   - [ ] Read Logs
   - [ ] Comments

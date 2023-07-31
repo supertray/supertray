@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    // add all the directories and files
+    // that you want to lint here
+    "**/*.ts",
+    "**/*.js",
+    "**/*.config.cjs",
+    "**/*.mjs",
+    "**/*.tsx",
+    "**/*.jsx",
+    // add all files in which you see
+    // the "parserOptions.project" error
+    ".eslintrc.cjs",
+    "commitlint.config.cjs"
+  ]
+}

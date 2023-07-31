@@ -1,0 +1,37 @@
+version: '3.9'
+name: 'supertray-api-server'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${DOCKER_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DOCKER_DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DOCKER_DB_DATABASE:-supertray}
+      PGDATA: /db
+    ports:
+      - ${DOCKER_DB_PORT:-5432}:5432
+    volumes:
+      - supertray-api-server-volume:/var/lib/postgresql/data
+    restart: 'always'
+    networks:
+      - postgres-network
+  # redis:
+  #   image: redis
+  #   ports:
+  #     - ${REDIS_PORT:-6379}:6379
+  #   volumes:
+  #     - ${REDIS_DATA:-~/apps/redis:/var/lib/redis/data}
+  #   restart: 'always'
+  #   networks:
+  #     - redis-network
+
+networks:
+  postgres-network:
+    driver: bridge
+  # redis-network:
+  #   driver: bridge
+
+volumes:
+  supertray-api-server-volume:
+    name: supertray-api-server-volume

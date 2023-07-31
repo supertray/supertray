@@ -1,0 +1,8 @@
+*.html
+node_modules
+*.d.ts
+package-lock.json
+dist
+lib
+_ext
+dist-electron
