@@ -15,8 +15,8 @@ export const userSchema = Type.Object(
     email: Type.String({ format: 'email' }),
     firstName: Type.Optional(Type.String()),
     lastName: Type.Optional(Type.String()),
-    password: Type.Optional(Type.String()),
-    superadmin: Type.Boolean(),
+    password: Type.Optional(Type.String({ minLength: 8 })),
+    isVerified: Type.Boolean(),
     createdAt: Type.Optional(Type.String({ format: 'date-time' })),
     updatedAt: Type.Optional(Type.String({ format: 'date-time' })),
   },
@@ -29,7 +29,6 @@ export const userResolver = resolve<User, HookContext>({});
 export const userExternalResolver = resolve<User, HookContext>({
   // The password should never be visible externally
   password: async () => undefined,
-  superadmin: async () => undefined,
   createdAt: async () => undefined,
   updatedAt: async () => undefined,
 });
@@ -53,13 +52,59 @@ export const userPatchSchema = Type.Omit(
   Type.Partial(userSchema, {
     $id: 'UserPatch',
   }),
-  ['id', 'password', 'createdAt', 'updatedAt'],
+  ['id', 'createdAt', 'updatedAt'],
 );
 export type UserPatch = Static<typeof userPatchSchema>;
 export const userPatchValidator = getValidator(userPatchSchema, dataValidator);
 export const userPatchResolver = resolve<User, HookContext>({
   password: passwordHash({ strategy: 'local' }),
 });
+export const userPatchExternalDiscardedFields = ['email', 'password', 'isVerified'] as const;
+
+export const userActionSchema = Type.Union([
+  Type.Object({
+    action: Type.Literal('verifySignup'),
+    payload: Type.Object({
+      verifyToken: Type.String({ minLength: 1 }),
+    }),
+  }),
+  Type.Object({
+    action: Type.Literal('resendVerifySignup'),
+    payload: Type.Object({
+      email: Type.String({ format: 'email' }),
+    }),
+  }),
+  Type.Object({
+    action: Type.Literal('sendResetPwd'),
+    payload: Type.Object({
+      email: Type.String({ format: 'email' }),
+    }),
+  }),
+  Type.Object({
+    action: Type.Literal('resetPwd'),
+    payload: Type.Object({
+      token: Type.String({ minLength: 1 }),
+      password: Type.String({ minLength: 8 }),
+    }),
+  }),
+  Type.Object({
+    action: Type.Literal('pwdChange'),
+    payload: Type.Object({
+      password: Type.String({ minLength: 8 }),
+      newPassword: Type.String({ minLength: 8 }),
+    }),
+  }),
+  Type.Object({
+    action: Type.Literal('emailChange'),
+    payload: Type.Object({
+      password: Type.String({ minLength: 8 }),
+      email: Type.String({ format: 'email' }),
+    }),
+  }),
+]);
+export type UserAction = Static<typeof userActionSchema>;
+export const userActionValidator = getValidator(userActionSchema, dataValidator);
+export const userActionResolver = resolve<UserAction, HookContext>({});
 
 // Schema for allowed query properties
 export const userQueryProperties = Type.Pick(userSchema, ['id', 'email']);

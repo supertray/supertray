@@ -13,7 +13,11 @@
     }
   },
   "authExtension": {
-    "refreshTokenExpiresIn": "AUTH_REFRESH_TOKEN_EXPIRES_IN"
+    "refreshTokenExpiresIn": "AUTH_REFRESH_TOKEN_EXPIRES_IN",
+    "allowEmailChange": {
+      "__name": "AUTH_ALLOW_EMAIL_CHANGE",
+      "__format": "boolean"
+    }
   },
   "users": {
     "externalSignup": {
@@ -58,5 +62,8 @@
       "user": "EMAIL_SMTP_USER",
       "pass": "EMAIL_SMTP_PASSWORD"
     }
+  },
+  "webClient": {
+    "url": "WEB_CLIENT_URL"
   }
 }

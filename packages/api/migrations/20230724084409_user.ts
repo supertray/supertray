@@ -10,7 +10,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string('lastName', 100);
     table.string('email', 255).unique();
     table.string('password', 767);
-    table.boolean('superadmin').defaultTo(false);
+    table.boolean('isVerified').defaultTo(false);
     table.timestamps(true, true, true);
   });
 
