@@ -52,6 +52,7 @@ module.exports = {
         'import/no-default-export': 'off',
         'max-classes-per-file': 'off',
         'no-underscore-dangle': 'off',
+        'no-case-declarations': 'off',
         '@typescript-eslint/no-unused-vars': 'warn',
         '@typescript-eslint/no-empty-interface': 'off',
         '@typescript-eslint/require-await': 'off',

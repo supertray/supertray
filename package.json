@@ -9,7 +9,8 @@
     "git-hooks:commit-msg": "commitlint --edit",
     "git-hooks:pre-commit": "lint-staged",
     "start:dev-mode": "nodemon nodemon.json --config nodemon.json",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "postinstall": "patch-package"
   },
   "repository": {
     "type": "git",
@@ -43,6 +44,7 @@
     "husky": "^8.0.3",
     "lerna": "^7.1.4",
     "lint-staged": "^13.2.0",
+    "patch-package": "^8.0.0",
     "prettier": "^2.8.7",
     "typescript": "^5.1.6"
   },

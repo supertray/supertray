@@ -1,0 +1,19 @@
+diff --git a/node_modules/@feathersjs/typebox/lib/index.d.ts b/node_modules/@feathersjs/typebox/lib/index.d.ts
+index 451caad..dc4a4ef 100644
+--- a/node_modules/@feathersjs/typebox/lib/index.d.ts
++++ b/node_modules/@feathersjs/typebox/lib/index.d.ts
+@@ -1,4 +1,4 @@
+-import { TObject, TInteger, TOptional, TSchema, ObjectOptions, TIntersect } from '@sinclair/typebox';
++import { TObject, TInteger, TOptional, TSchema, ObjectOptions, TIntersect, TUnion } from '@sinclair/typebox';
+ import { Validator, DataValidatorMap, Ajv } from '@feathersjs/schema';
+ export * from '@sinclair/typebox';
+ export * from './default-schemas';
+@@ -14,7 +14,7 @@ export type TDataSchemaMap = {
+  * @param validator The AJV validation instance
+  * @returns A compiled validation function
+  */
+-export declare const getValidator: <T = any, R = T>(schema: TObject | TIntersect, validator: Ajv) => Validator<T, R>;
++export declare const getValidator: <T = any, R = T>(schema: TObject | TIntersect | TUnion<TObject[]>, validator: Ajv) => Validator<T, R>;
+ /**
+  * Returns compiled validation functions to validate data for the `create`, `update` and `patch`
+  * service methods. If not passed explicitly, the `update` validator will be the same as the `create`

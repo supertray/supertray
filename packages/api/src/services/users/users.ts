@@ -1,9 +1,9 @@
 // For more information about this file see https://dove.feathersjs.com/guides/cli/service.html
-import type { Application } from '../../declarations';
+import type { Application, HookContext } from '../../declarations';
 
 import { authenticate } from '@feathersjs/authentication';
 import { hooks as schemaHooks } from '@feathersjs/schema';
-import { disallow, iff } from 'feathers-hooks-common';
+import { disallow, discard, iff, isProvider } from 'feathers-hooks-common';
 
 import { UserService, getOptions } from './users.class';
 import {
@@ -15,6 +15,9 @@ import {
   userDataResolver,
   userPatchResolver,
   userQueryResolver,
+  userActionResolver,
+  userActionValidator,
+  userPatchExternalDiscardedFields,
 } from './users.schema';
 import { userPath, userMethods } from './users.shared';
 
@@ -24,9 +27,9 @@ export * from './users.class';
 // A configure function that registers the service and its hooks via `app.configure`
 export const user = (app: Application) => {
   // Register our service on the Feathers application
-  app.use(userPath, new UserService(getOptions(app)), {
+  app.use(userPath, new UserService(getOptions(app), app), {
     // A list of all methods this service exposes externally
-    methods: userMethods,
+    methods: [...userMethods, 'action'],
     // You can add additional custom events to be sent to clients here
     events: [],
   });
@@ -43,6 +46,14 @@ export const user = (app: Application) => {
       update: [authenticate('jwt')],
       patch: [authenticate('jwt')],
       remove: [authenticate('jwt')],
+      action: [
+        async (ctx: HookContext, next) => {
+          if (['emailChange', 'pwdChange'].includes(ctx.data.action)) {
+            return authenticate('jwt')(ctx, next);
+          }
+          return ctx;
+        },
+      ],
     },
     before: {
       all: [
@@ -58,9 +69,14 @@ export const user = (app: Application) => {
       ],
       patch: [
         schemaHooks.validateData(userPatchValidator),
+        iff(isProvider('external'), discard(...userPatchExternalDiscardedFields)),
         schemaHooks.resolveData(userPatchResolver),
       ],
       remove: [],
+      action: [
+        schemaHooks.validateData(userActionValidator),
+        schemaHooks.resolveData(userActionResolver),
+      ],
     },
     after: {
       all: [],
