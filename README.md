@@ -36,9 +36,9 @@ Supertray is currently in development. The following features are planned:
 
 ### MVP
 
-- [ ] Authentication Strategies
-  - [ ] E-Mail+Password
-  - [ ] Refresh Tokens
+- [x] Authentication Strategies (#1, #11)
+  - [x] E-Mail+Password
+  - [x] Refresh Tokens
 - [ ] Spaces (Workspaces)
   - [ ] Manage
   - [ ] Manage Members
