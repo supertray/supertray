@@ -30,6 +30,40 @@ Supertray will be built with the following technologies:
   - **Currently unknown**
   - (?) [remote-ui](https://github.com/Shopify/remote-ui) for app extensions
 
+## API Concept
+
+```js
+import { createServer, createOAuthStrategy, createOcrPipeline } from '@supertray/api';
+import { createS3StorageService } from '@supertray/storage-service-s3';
+import { createAiOcrPipeline } from '@supertray/ocr-pipeline-supertray-ai';
+import { createTesseractOcrService } from '@supertray/ocr-service-tesseract';
+
+const server = createServer({
+  authStrategies: [
+    createOAuthStrategy({
+      provider: 'google',
+      clientId: '...',
+      clientSecret: '...',
+    }),
+    createEmailPasswordStrategy(),
+  ],
+  storage: createS3StorageService({
+    // ...
+  }),
+  ocr: createOcrPipeline({
+    ocrService: createTeseractOcrService({
+      // ...
+    }),
+    // iocrService: ...
+  }),
+  ocr: createAiOcrPipeline({
+    // ...
+  }),
+});
+
+server.run();
+```
+
 ## Roadmap
 
 Supertray is currently in development. The following features are planned:
