@@ -15,13 +15,14 @@ import {
   serveStatic,
 } from '@feathersjs/koa';
 import socketio from '@feathersjs/socketio';
+import { feathersCasl } from 'feathers-casl';
 
-import { authentication } from './authentication';
 import { channels } from './channels';
 import { configurationValidator } from './configuration';
 import { logError } from './hooks/log-error';
 import { mailer } from './mailer';
 import { postgresql } from './postgresql';
+import { authentication } from './services/authentication';
 import { services } from './services/index';
 
 const app: Application = koa(feathers());
@@ -30,8 +31,12 @@ const app: Application = koa(feathers());
 app.configure(configuration(configurationValidator));
 
 // Set up Koa middleware
-app.use(cors());
-app.use(serveStatic(path.resolve(__dirname, app.get('public'))));
+app.use(
+  cors({
+    origin: app.get('origins') || '*',
+  }),
+);
+app.use(serveStatic(path.resolve(process.cwd(), app.get('public'))));
 app.use(errorHandler());
 app.use(parseAuthentication());
 app.use(bodyParser());
@@ -41,13 +46,18 @@ app.configure(rest());
 app.configure(
   socketio({
     cors: {
-      origin: app.get('origins'),
+      origin: app.get('origins') || '*',
     },
   }),
 );
 app.configure(postgresql);
 app.configure(authentication);
 app.configure(mailer);
+app.configure(
+  feathersCasl({
+    defaultAdapter: '@feathersjs/knex',
+  }),
+);
 app.configure(services);
 app.configure(channels);
 

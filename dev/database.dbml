@@ -1,0 +1,70 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table workspaces {
+  id uuid [pk]
+  name varchar [not null]
+  logo varchar
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+Table users {
+  id uuid [pk]
+  email varchar [unique, not null]
+  password varchar
+  firstName varchar
+  lastName varchar
+  createdAt timestamp
+  updatedAt timestamp
+}
+
+enum workspaceUsersRoles {
+  owner
+  admin
+  member
+}
+
+Table workspaceUsers {
+  id uuid [pk]
+  userId uuid [not null]
+  workspaceId uuid [not null]
+  active boolean [default: true]
+  role workspaceUsersRoles
+
+  indexes {
+    (userId, workspaceId) [pk]
+  }
+}
+
+Table workspaceUserInvites {
+  id uuid [pk]
+  workspaceId uuid
+  token varchar [unique]
+  email varchar
+  role workspaceUsersRoles
+  createdAt timestamp
+  updatedAt timestamp
+
+  indexes {
+    (workspaceId, email) [unique]
+  }
+}
+
+Table documentTypes {
+  id uuid [pk]
+  workspaceId uuid
+  name varchar [not null]
+  schema jsonb [not null]
+}
+
+Table documents {
+  id uuid [pk]
+  workspaceId uuid
+}
+
+Ref: workspaceUsers.userId > users.id
+Ref: workspaceUsers.workspaceId > workspaces.id
+Ref: workspaceUserInvites.workspaceId > workspaces.id
+Ref: documentTypes.workspaceId > workspaces.id
+Ref: documents.workspaceId > workspaces.id

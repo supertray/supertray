@@ -3,6 +3,7 @@ import type { User, UserAction, UserData, UserPatch, UserQuery } from './users.s
 import type { Application } from '../../declarations';
 import type { Params } from '@feathersjs/feathers';
 import type { KnexAdapterParams, KnexAdapterOptions } from '@feathersjs/knex';
+import type { Knex } from 'knex';
 
 import {
   BadRequest,
@@ -63,7 +64,7 @@ export class UserService<ServiceParams extends Params = UserParams> extends Knex
       if (typeof jwtPayload === 'string' || jwtPayload.act !== 'verifySignup' || !jwtPayload.sub) {
         throw new BadRequest('Invalid token');
       }
-      const user = await this.get(jwtPayload.sub);
+      const user = await this._get(jwtPayload.sub);
       if (!user || user.isVerified) {
         throw new BadRequest('User is already verified');
       }
@@ -71,7 +72,9 @@ export class UserService<ServiceParams extends Params = UserParams> extends Knex
     }
 
     if (action === 'resendVerifySignup') {
-      const { total, data } = await this.find({ query: { email: payload.email, $limit: 1 } });
+      const { total, data } = await this.find({
+        query: { email: payload.email, $limit: 1 },
+      });
       if (total === 0) throw new BadRequest();
       const user = data[0];
       if (user.isVerified) throw new BadRequest('User is already verified');
@@ -90,7 +93,9 @@ export class UserService<ServiceParams extends Params = UserParams> extends Knex
     }
 
     if (action === 'sendResetPwd') {
-      const { total, data } = await this.find({ query: { email: payload.email, $limit: 1 } });
+      const { total, data } = await this.find({
+        query: { email: payload.email, $limit: 1 },
+      });
       if (total === 0) throw new BadRequest();
       const user = data[0];
       await this.notifier('sendResetPwd', user);
@@ -140,5 +145,8 @@ export const getOptions = (app: Application): KnexAdapterOptions => {
     paginate: app.get('paginate'),
     Model: app.get('postgresqlClient'),
     name: 'supertray_users',
+    filters: {
+      $join: true,
+    },
   };
 };

@@ -6,14 +6,15 @@
     "target": "ES2022",
     "module": "commonjs",
     "outDir": "./lib",
-    "rootDir": "./src",
+    "rootDir": "./",
     "declaration": true,
     "strict": true,
     "esModuleInterop": true,
     "sourceMap": true
   },
   "include": [
-    "src"
+    "src",
+    "index.ts"
   ],
   "exclude": [
     "test"

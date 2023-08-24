@@ -6,6 +6,7 @@ import { resolve } from '@feathersjs/schema';
 import { Type, getValidator, querySyntax } from '@feathersjs/typebox';
 
 import { dataValidator, queryValidator } from '../../validators';
+import { timestamps } from '../defaultSchema';
 
 // Main data model schema
 export const sessionSchema = Type.Object(
@@ -17,6 +18,7 @@ export const sessionSchema = Type.Object(
     ipAddress: Type.Optional(Type.String({ format: 'ipv4' })),
     userAgent: Type.Optional(Type.String()),
     origin: Type.Optional(Type.String()),
+    ...timestamps,
   },
   { $id: 'Session', additionalProperties: false },
 );

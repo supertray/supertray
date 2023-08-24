@@ -1,4 +1,4 @@
-import type { Application } from '../declarations';
+import type { Application } from '../../declarations';
 import type {
   AuthenticationParams,
   AuthenticationRequest,
@@ -83,6 +83,9 @@ export class CustomAuthenticationService extends AuthenticationService {
   ): Promise<CustomAuthenticationResult> {
     const dontCreateSessionFor = ['jwt', 'refresh'];
     const authResult = await super.authenticate(authentication, params, ...allowed);
+    if (!authResult.user.isVerified) {
+      throw new NotAuthenticated('Email not verified');
+    }
     if (authentication.strategy && !dontCreateSessionFor.includes(authentication.strategy)) {
       const session = await this.app.service('sessions').create({
         userId: authResult.user.id,

@@ -1,7 +1,11 @@
 // For more information about this file see https://dove.feathersjs.com/guides/cli/databases.html
-import dotenv from 'dotenv';
+import path from 'path';
 
-dotenv.config();
+import * as dotenv from 'dotenv';
+
+dotenv.config({
+  path: path.resolve(process.cwd(), '.env'),
+});
 
 /* eslint-disable import/first */
 import { app } from './src/app';

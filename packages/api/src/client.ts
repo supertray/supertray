@@ -7,6 +7,22 @@ import { feathers } from '@feathersjs/feathers';
 
 import { sessionClient } from './services/sessions/sessions.shared';
 import { userClient } from './services/users/users.shared';
+import { workspaceUsersClient } from './services/workspace-users/workspace-users.shared';
+import { workspacesClient } from './services/workspaces/workspaces.shared';
+
+export type {
+  WorkspaceUsers,
+  WorkspaceUsersData,
+  WorkspaceUsersQuery,
+  WorkspaceUsersPatch,
+} from './services/workspace-users/workspace-users.shared';
+
+export type {
+  Workspaces,
+  WorkspacesData,
+  WorkspacesQuery,
+  WorkspacesPatch,
+} from './services/workspaces/workspaces.shared';
 
 export type {
   Session,
@@ -45,5 +61,7 @@ export const createClient = <TConfiguration = any>(
 
   client.configure(userClient);
   client.configure(sessionClient);
+  client.configure(workspacesClient);
+  client.configure(workspaceUsersClient);
   return client;
 };

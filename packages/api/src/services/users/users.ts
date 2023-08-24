@@ -3,7 +3,7 @@ import type { Application, HookContext } from '../../declarations';
 
 import { authenticate } from '@feathersjs/authentication';
 import { hooks as schemaHooks } from '@feathersjs/schema';
-import { disallow, discard, iff, isProvider } from 'feathers-hooks-common';
+import { disallow, discard, iff, isProvider, populate } from 'feathers-hooks-common';
 
 import { UserService, getOptions } from './users.class';
 import {
@@ -20,9 +20,22 @@ import {
   userPatchExternalDiscardedFields,
 } from './users.schema';
 import { userPath, userMethods } from './users.shared';
+import { authorizeKnexHook } from '../../hooks/abilities';
+import { beforeJoinRelated } from '../../hooks/joinRelated';
 
 export * from './users.class';
-// export * from './users.schema';
+
+const userWorkspaceUserSchema = {
+  include: [
+    {
+      service: 'workspace-users',
+      nameAs: 'workspaces',
+      parentField: 'id',
+      childField: 'userId',
+      asArray: true,
+    },
+  ],
+};
 
 // A configure function that registers the service and its hooks via `app.configure`
 export const user = (app: Application) => {
@@ -51,7 +64,7 @@ export const user = (app: Application) => {
           if (['emailChange', 'pwdChange'].includes(ctx.data.action)) {
             return authenticate('jwt')(ctx, next);
           }
-          return ctx;
+          return next();
         },
       ],
     },
@@ -59,27 +72,31 @@ export const user = (app: Application) => {
       all: [
         schemaHooks.validateQuery(userQueryValidator),
         schemaHooks.resolveQuery(userQueryResolver),
+        iff((ctx) => !['create', 'action'].includes(ctx.method), authorizeKnexHook()),
       ],
       find: [],
-      get: [],
+      get: [beforeJoinRelated()],
       create: [
         iff((ctx) => !ctx.app.get('users').externalSignup, disallow('external')),
         schemaHooks.validateData(userDataValidator),
         schemaHooks.resolveData(userDataResolver),
       ],
       patch: [
-        schemaHooks.validateData(userPatchValidator),
         iff(isProvider('external'), discard(...userPatchExternalDiscardedFields)),
+        schemaHooks.validateData(userPatchValidator),
         schemaHooks.resolveData(userPatchResolver),
       ],
-      remove: [],
+      remove: [disallow('external')],
       action: [
         schemaHooks.validateData(userActionValidator),
         schemaHooks.resolveData(userActionResolver),
       ],
     },
     after: {
-      all: [],
+      all: [iff((ctx) => !['create', 'action'].includes(ctx.method), authorizeKnexHook())],
+      get: [populate({ schema: userWorkspaceUserSchema })],
+      find: [],
+      action: [],
     },
     error: {
       all: [],

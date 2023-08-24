@@ -33,10 +33,11 @@ Supertray will be built with the following technologies:
 ## API Concept
 
 ```js
-import { createServer, createOAuthStrategy, createOcrPipeline } from '@supertray/api';
+import { createServer, createOcrPipeline } from '@supertray/api';
 import { createS3StorageService } from '@supertray/storage-service-s3';
 import { createAiOcrPipeline } from '@supertray/ocr-pipeline-supertray-ai';
 import { createTesseractOcrService } from '@supertray/ocr-service-tesseract';
+import { createEmailPasswordStrategy, createOAuthStrategy } from '@supertray/auth-strategies';
 
 const server = createServer({
   authStrategies: [

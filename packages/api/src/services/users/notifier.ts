@@ -1,23 +1,10 @@
 import type { User } from './users.schema';
 import type { Application } from '../../declarations';
-import type { SendMailOptions } from 'nodemailer';
 
 import jsonwebtoken from 'jsonwebtoken';
 import ms from 'ms';
 
-import { logger } from '../../logger';
-
-function obfuscateEmail(email: string) {
-  const [name, domain] = email.split('@');
-  let obfuscatedName = `${name.slice(0, 2)}${
-    name.length > 4 ? Array.from({ length: name.length - 4 }, () => '*').join('') : ''
-  }${name.slice(-2)}`;
-  if (name.length < 5)
-    obfuscatedName = `${name.slice(0, 1)}${Array.from({ length: name.length - 1 }, () => '*').join(
-      '',
-    )}`;
-  return `${obfuscatedName}@${domain}`;
-}
+import { sendEmail } from '../../mailer';
 
 function getExp(to: `${number}m`) {
   const expirationMs = Date.now() + ms(to);
@@ -33,27 +20,6 @@ export function notifier(app: Application) {
     return `${url}/${type}?token=${hash}`;
   }
 
-  async function sendEmail(email: SendMailOptions) {
-    try {
-      process.nextTick(async () => {
-        const result = await app.service('mailer').create(email);
-        logger.info('Sent email', {
-          ...result,
-          accepted: result.accepted.map((m) => obfuscateEmail(m.toString())),
-          rejected: result.rejected.map((m) => obfuscateEmail(m.toString())),
-          envelope: {
-            ...result.envelope,
-            to: result.envelope.to.map((m) => obfuscateEmail(m)),
-          },
-        });
-      });
-      return true;
-    } catch (err) {
-      logger.error(err);
-      return false;
-    }
-  }
-
   return (type: string, user: User, notifierOptions: { oldEmail?: string } = {}) => {
     const mail = app.get('mailer');
     const { secret } = app.get('authentication');
@@ -66,7 +32,7 @@ export function notifier(app: Application) {
         },
         secret,
       );
-      return sendEmail({
+      return sendEmail(app, {
         from: mail.from,
         to: user.email,
         subject: 'Supertray - Please confirm your e-mail address',
@@ -74,7 +40,7 @@ export function notifier(app: Application) {
       });
     }
     if (type === 'verifySignup') {
-      return sendEmail({
+      return sendEmail(app, {
         from: mail.from,
         to: user.email,
         subject: 'Supertray - E-Mail address verified',
@@ -90,7 +56,7 @@ export function notifier(app: Application) {
         },
         secret,
       );
-      return sendEmail({
+      return sendEmail(app, {
         from: mail.from,
         to: user.email,
         subject: 'Supertray - Reset your password',
@@ -98,7 +64,7 @@ export function notifier(app: Application) {
       });
     }
     if (type === 'emailChange' && notifierOptions.oldEmail) {
-      return sendEmail({
+      return sendEmail(app, {
         from: mail.from,
         to: user.email,
         subject: 'Supertray - E-Mail address changed',

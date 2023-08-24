@@ -23,12 +23,13 @@
     "externalSignup": {
       "__name": "USERS_EXTERNAL_SIGNUP",
       "__format": "boolean"
+    },
+    "allowWorkspaceCreation": {
+      "__name": "USERS_ALLOW_WORKSPACE_CREATION",
+      "__format": "boolean"
     }
   },
-  "origins": {
-    "__name": "CORS_ORIGINS",
-    "__format": "array"
-  },
+  "origins": "CORS_ORIGINS",
   "paginate": {
     "default": {
       "__name": "PAGINATE_DEFAULT",

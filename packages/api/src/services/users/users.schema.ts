@@ -6,7 +6,10 @@ import { passwordHash } from '@feathersjs/authentication-local';
 import { resolve } from '@feathersjs/schema';
 import { Type, getValidator, querySyntax } from '@feathersjs/typebox';
 
+import { $joinSchema } from '../../hooks/joinRelated';
 import { dataValidator, queryValidator } from '../../validators';
+import { timestamps } from '../defaultSchema';
+// import { workspaceUsersSchema } from '../workspace-users/workspace-users.schema';
 
 // Main data model schema
 export const userSchema = Type.Object(
@@ -17,8 +20,8 @@ export const userSchema = Type.Object(
     lastName: Type.Optional(Type.String()),
     password: Type.Optional(Type.String({ minLength: 8 })),
     isVerified: Type.Boolean(),
-    createdAt: Type.Optional(Type.String({ format: 'date-time' })),
-    updatedAt: Type.Optional(Type.String({ format: 'date-time' })),
+    // workspaces: Type.Optional(Type.Array(workspaceUsersSchema)),
+    ...timestamps,
   },
   { $id: 'User', additionalProperties: false },
 );
@@ -59,7 +62,12 @@ export const userPatchValidator = getValidator(userPatchSchema, dataValidator);
 export const userPatchResolver = resolve<User, HookContext>({
   password: passwordHash({ strategy: 'local' }),
 });
-export const userPatchExternalDiscardedFields = ['email', 'password', 'isVerified'] as const;
+export const userPatchExternalDiscardedFields = [
+  'email',
+  'password',
+  'isVerified',
+  'workspaces',
+] as const;
 
 export const userActionSchema = Type.Union([
   Type.Object({
@@ -107,11 +115,12 @@ export const userActionValidator = getValidator(userActionSchema, dataValidator)
 export const userActionResolver = resolve<UserAction, HookContext>({});
 
 // Schema for allowed query properties
-export const userQueryProperties = Type.Pick(userSchema, ['id', 'email']);
+export const userQueryProperties = Type.Pick(userSchema, ['id', 'email', 'firstName', 'lastName']);
 export const userQuerySchema = Type.Intersect(
   [
     querySyntax(userQueryProperties),
     // Add additional query properties here
+    $joinSchema,
     Type.Object({}, { additionalProperties: false }),
   ],
   { additionalProperties: false },

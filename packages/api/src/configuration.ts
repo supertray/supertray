@@ -22,7 +22,7 @@ const defaultSchema = Type.Object(
         { additionalProperties: false },
       ),
     ),
-    origins: Type.Optional(Type.Array(Type.String())),
+    origins: Type.Optional(Type.String()),
   },
   { $id: 'ApplicationConfiguration', additionalProperties: false },
 );
@@ -39,6 +39,7 @@ export const configurationSchema = Type.Intersect([
     }),
     users: Type.Object({
       externalSignup: Type.Boolean(),
+      allowWorkspaceCreation: Type.Boolean(),
     }),
     mailer: Type.Object({
       from: Type.String(),
