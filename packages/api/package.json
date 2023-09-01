@@ -17,6 +17,7 @@
     "@casl/ability": "^6.5.0",
     "@koa/cors": "^4.0.0",
     "@trpc/server": "^10.38.0",
+    "@tweedegolf/storage-abstraction": "^1.4.6",
     "bcrypt": "^5.1.1",
     "busboy": "^1.6.0",
     "cors": "^2.8.5",

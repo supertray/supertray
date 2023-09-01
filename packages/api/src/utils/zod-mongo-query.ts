@@ -4,7 +4,7 @@ import { logger } from '../logger';
 
 export type ZodMongoQueryObjectValueSchema<T extends z.ZodTypeAny> = T extends z.ZodEffects<
   infer U,
-  any
+  unknown
 >
   ? ZodMongoQueryObjectValueSchema<U>
   : T extends z.ZodDate

@@ -21,6 +21,27 @@ const readableTime = z.preprocess(
 
 const booleanString = z.preprocess((v) => v === 'true', z.boolean(), z.enum(['true', 'false']));
 
+const storageSchema = z.union([
+  z.object({
+    STORAGE_TYPE: z.literal('local'),
+    STORAGE_LOCAL_DIRECTORY: z.string(),
+    STORAGE_S3_BUCKET: z.undefined(),
+    STORAGE_S3_ACCESS_KEY_ID: z.undefined(),
+    STORAGE_S3_SECRET_ACCESS_KEY: z.undefined(),
+    STORAGE_S3_REGION: z.undefined(),
+    STORAGE_S3_ENDPOINT: z.undefined(),
+  }),
+  z.object({
+    STORAGE_TYPE: z.literal('s3'),
+    STORAGE_LOCAL_DIRECTORY: z.undefined(),
+    STORAGE_S3_BUCKET: z.string(),
+    STORAGE_S3_ACCESS_KEY_ID: z.string(),
+    STORAGE_S3_SECRET_ACCESS_KEY: z.string(),
+    STORAGE_S3_REGION: z.string(),
+    STORAGE_S3_ENDPOINT: z.string(),
+  }),
+]);
+
 export const configuration = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']),
   HOST: z.string().default('localhost'),
@@ -52,4 +73,7 @@ export const configuration = z.object({
 
 export type Configuration = z.infer<typeof configuration>;
 
-export const env = configuration.parse(process.env);
+export const env = {
+  ...configuration.parse(process.env),
+  ...storageSchema.parse(process.env),
+};

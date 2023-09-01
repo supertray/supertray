@@ -29,7 +29,9 @@ const server = createServer((req, res) => {
     return;
   }
   if (req.url?.startsWith('/api/upload')) {
-    uploadRouter(req, res);
+    uploadRouter(req, res, (storagePath) => {
+      console.log(storagePath);
+    });
     return;
   }
   res.writeHead(404);
