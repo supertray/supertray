@@ -30,33 +30,24 @@ Supertray will be built with the following technologies:
 ## API Concept
 
 ```js
-import { createServer, createOcrPipeline } from '@supertray/api';
-import { createS3StorageService } from '@supertray/storage-service-s3';
-import { createAiOcrPipeline } from '@supertray/ocr-pipeline-supertray-ai';
-import { createTesseractOcrService } from '@supertray/ocr-service-tesseract';
-import { createEmailPasswordStrategy, createOAuthStrategy } from '@supertray/auth-strategies';
+import { createServer, createDocumentParser } from '@supertray/api';
+import { createOcrTextExtraction, createDataExtraction } from '@supertray/ocr-supertray-ai';
+import { createPdfArchiveGenerator, createThumbnailGenerator } from '@supertray/gotenberg';
 
 const server = createServer({
-  authStrategies: [
-    createOAuthStrategy({
-      provider: 'google',
-      clientId: '...',
-      clientSecret: '...',
+  documentPipeline: createDocumentParser({
+    pdfArchiveGenerator: createPdfArchiveGenerator({
+      // maybe gotenberg?
     }),
-    createEmailPasswordStrategy(),
-  ],
-  storage: createS3StorageService({
-    // ...
-  }),
-  ocr: createOcrPipeline({
-    ocrService: createTeseractOcrService({
+    thumbnailGenerator: createThumbnailGenerator({
+      // maybe gotenberg?
+    }),
+    ocrTextExtraction: createOcrTextExtraction({
       // ...
     }),
-    // iocrService: ...
-  }),
-  // or
-  ocr: createAiOcrPipeline({
-    // ...
+    dataExtraction: createDataExtraction({
+      // ...
+    }),
   }),
 });
 
@@ -70,7 +61,7 @@ Supertray is currently in development. The following features are planned:
 ### MVP
 
 - [x] Authentication Strategies (#1, #11)
-  - [x] E-Mail+Password
+  - [x] E-Mail OTP
   - [x] Refresh Tokens
 - [ ] Spaces (Workspaces)
   - [ ] Manage
@@ -86,7 +77,7 @@ Supertray is currently in development. The following features are planned:
     - [ ] Word
     - [ ] Excel
 - [ ] Documents
-  - [ ] Upload
+  - [ ] Upload with initial parsing
   - [ ] Download
   - [ ] Archive
   - [ ] Delete (Trash)
@@ -97,10 +88,6 @@ Supertray is currently in development. The following features are planned:
   - [ ] Manage Fields (JSON Schema?)
   - [ ] Manage Permissions (Roles)
   - [ ] Manage OCR Settings
-- [ ] Trays
-  - [ ] Manage
-  - [ ] Move Documents
-  - [ ] Manage User Permissions (Roles or Custom)
 - [ ] OCR Service
   - [ ] Extract Text
   - [ ] Extract Structured Data (use Document Type Fields Schema?)
@@ -109,7 +96,6 @@ Supertray is currently in development. The following features are planned:
 ### Other considerable features
 
 - [ ] Authentication Strategies
-  - [ ] OTP
   - [ ] SSO/OAuth
   - [ ] MFA
   - [ ] API Keys
@@ -120,6 +106,9 @@ Supertray is currently in development. The following features are planned:
   - [ ] Custom Fields
   - [ ] Notes
 - [ ] Trays
+  - [ ] Manage
+  - [ ] Move Documents
+  - [ ] Manage User Permissions (Roles or Custom)
   - [ ] E-Mail Address to send emails with attachments to tray
 - [ ] External Sharing
   - [ ] Trays
