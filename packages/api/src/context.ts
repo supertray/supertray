@@ -1,7 +1,15 @@
 import type { inferAsyncReturnType } from '@trpc/server';
+import type { NodeHTTPCreateContextFnOptions } from '@trpc/server/adapters/node-http';
+import type { Socket } from 'net';
+
+import { IncomingMessage } from 'http';
+
+import { NodeHTTPCreateContextFn } from '@trpc/server/adapters/node-http';
+import { WebSocket as ws } from 'ws';
 
 import { database } from './database';
 import * as queries from './database/queries';
+import { ee } from './emitter';
 import { env } from './env';
 import { errors } from './errors';
 import { logger } from './logger';
@@ -16,6 +24,17 @@ export const ctx = {
   },
   mailer,
   errors,
+  ee,
 };
 
 export type Context = inferAsyncReturnType<() => typeof ctx>;
+
+export const createContext = <TRequest, TResponse>(
+  opts: NodeHTTPCreateContextFnOptions<TRequest, TResponse>,
+) => {
+  return {
+    ...ctx,
+    req: opts.req,
+    ws: opts.res instanceof ws ? opts.res : undefined,
+  };
+};

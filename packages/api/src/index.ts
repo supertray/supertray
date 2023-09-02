@@ -4,22 +4,17 @@ import { createServer } from 'http';
 import { createHTTPHandler } from '@trpc/server/adapters/standalone';
 import cors from 'cors';
 
-import { ctx } from './context';
-// import { uploadRoute } from './routes/upload';
+import { createContext, ctx } from './context';
 import { uploadRouter } from './routes/upload';
 import { trpcRouter } from './trpc-router';
+import { createWebsocketServer } from './websocket';
 
 const trpcHandler = createHTTPHandler({
   router: trpcRouter,
   middleware: cors({
     origin: '*',
   }),
-  createContext: ({ req }) => {
-    return {
-      ...ctx,
-      req,
-    };
-  },
+  createContext,
 });
 
 const server = createServer((req, res) => {
@@ -38,8 +33,12 @@ const server = createServer((req, res) => {
   res.end('Not found');
 });
 
-// router.newGroup('/api/upload').use(uploadRouter);
+createWebsocketServer({
+  server,
+  trpcRouter,
+  createContext,
+});
 
-server.listen(ctx.env.PORT, ctx.env.HOST);
+server.listen(ctx.env.PORT);
 
 ctx.logger.info(`TRPC Server started on http://localhost:${ctx.env.PORT}/trpc`);

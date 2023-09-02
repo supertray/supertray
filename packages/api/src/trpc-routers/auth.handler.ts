@@ -1,6 +1,8 @@
 import type { ReadableTime } from '../utils';
 import type { IncomingMessage } from 'http';
 
+import ws from 'ws';
+
 import {
   authAuthenticateSchema,
   authLoginSchema,
@@ -143,6 +145,10 @@ export const authRouter = router({
       throw errors.unauthorized();
     }
     await ctx.db.queries.auth.deleteExpiredSessionsByUserId(session.userId);
+    if (ctx.ws) {
+      // Set the access token on the websocket connection
+      ctx.ws.accessToken = input.accessToken;
+    }
     return {
       accessToken: input.accessToken,
       expiresAt: jwt.exp * 1000,

@@ -49,25 +49,36 @@ const defineAbilitiesFor = (session: AuthSessionWithUserAndWorkspaces) => {
 };
 
 export const authenticate = middleware(async ({ ctx, next }) => {
-  const bearerToken = ctx.req.headers.authorization;
+  let bearerToken = ctx.req.headers.authorization;
+  const webSocketAccessToken = ctx.ws?.accessToken;
+  if (webSocketAccessToken) {
+    bearerToken = `Bearer ${webSocketAccessToken}`;
+  }
   if (!bearerToken || !(typeof bearerToken === 'string') || !bearerToken.startsWith('Bearer ')) {
     throw errors.unauthorized();
   }
   const token = bearerToken.split(' ')[1];
-  const { session, jwt } = await ctx.db.queries.auth.getSessionByAccessToken(token);
-  if (!session || !jwt.exp) {
+  if (!token) {
     throw errors.unauthorized();
   }
-  const casl = defineAbilitiesFor(session);
-  return next({
-    ctx: {
-      ...ctx,
-      session,
-      abilities: {
-        casl,
-        can: checkPermission(casl),
-        getPermissionsQuery: getPermissionsQuery(casl),
+  try {
+    const { session, jwt } = await ctx.db.queries.auth.getSessionByAccessToken(token);
+    if (!session || !jwt.exp) {
+      throw errors.unauthorized();
+    }
+    const casl = defineAbilitiesFor(session);
+    return await next({
+      ctx: {
+        ...ctx,
+        session,
+        abilities: {
+          casl,
+          can: checkPermission(casl),
+          getPermissionsQuery: getPermissionsQuery(casl),
+        },
       },
-    },
-  });
+    });
+  } catch (e) {
+    throw errors.unauthorized();
+  }
 });
