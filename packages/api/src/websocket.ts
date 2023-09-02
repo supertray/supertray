@@ -1,3 +1,4 @@
+import type { ContextWebSocket } from './trpc';
 import type { AnyRouter } from '@trpc/server';
 import type { WSSHandlerOptions } from '@trpc/server/adapters/ws';
 import type { IncomingMessage, Server, ServerResponse } from 'http';
@@ -16,6 +17,7 @@ export const createWebsocketServer = <TRouter extends AnyRouter>(options: {
   const { server, createContext } = options;
 
   const wss = new ws.Server({
+    // server: options.server,
     noServer: true,
   });
 
@@ -25,6 +27,13 @@ export const createWebsocketServer = <TRouter extends AnyRouter>(options: {
     createContext: (opts) => {
       return createContext?.(opts);
     },
+  });
+
+  wss.on('connection', (socket: ContextWebSocket) => {
+    socket.once('close', () => {
+      // eslint-disable-next-line no-param-reassign
+      socket.accessToken = undefined;
+    });
   });
 
   logger.info(`TRPC WebSocket Server started on ws://localhost:${env.PORT}/ws`);

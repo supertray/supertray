@@ -1,8 +1,6 @@
 import type { ReadableTime } from '../utils';
 import type { IncomingMessage } from 'http';
 
-import ws from 'ws';
-
 import {
   authAuthenticateSchema,
   authLoginSchema,

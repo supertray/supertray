@@ -25,7 +25,7 @@ const server = createServer((req, res) => {
   }
   if (req.url?.startsWith('/api/upload')) {
     uploadRouter(req, res, (storagePath) => {
-      console.log(storagePath);
+      ctx.logger.info(storagePath);
     });
     return;
   }
