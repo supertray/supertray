@@ -19,6 +19,7 @@ Supertray will be built with the following technologies:
   - [Knex](https://knexjs.org/)
   - [Postgres](https://www.postgresql.org/)
   - [Redis](https://redis.io/)
+  - [@tweedegolf/storage-abstraction](https://github.com/tweedegolf/storage-abstraction)
 - Web-App
   - [React](https://reactjs.org/)
   - [TypeScript](https://www.typescriptlang.org/)
@@ -64,11 +65,11 @@ Supertray is currently in development. The following features are planned:
   - [x] E-Mail OTP
   - [x] Refresh Tokens
 - [ ] Spaces (Workspaces)
-  - [ ] Manage
-  - [ ] Manage Members
+  - [x] Manage
+  - [x] Manage Members
   - [ ] Manage Roles
-- [ ] File Storage Service (configurable)
-  - [ ] Local Storage
+- [ ] File Storage Adapter (configurable)
+  - [x] Local Storage
   - [ ] S3 Storage
   - [ ] Thumbnail Generation for
     - [ ] PDF
@@ -77,7 +78,8 @@ Supertray is currently in development. The following features are planned:
     - [ ] Word
     - [ ] Excel
 - [ ] Documents
-  - [ ] Upload with initial parsing
+  - [x] Upload
+  - [ ] Initial Parsing Pipeline (OCR etc.)
   - [ ] Download
   - [ ] Archive
   - [ ] Delete (Trash)
