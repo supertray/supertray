@@ -1,13 +1,19 @@
-import type { WorkspaceUserInvite } from '../../schema';
+import type { WorkspaceUserInvite, WorkspaceUserWithName } from '../../schema';
 import type { Knex } from 'knex';
 
 import { database } from '..';
 
 export const getWorkspaceUserById = async (id: string, trx?: Knex.Transaction) => {
-  const workspaceUser = await (trx || database)
+  const workspaceUser: WorkspaceUserWithName = await (trx || database)
     .table('supertray_workspace_users')
-    .select('*')
-    .where('id', id)
+    .select(
+      'supertray_workspace_users.*',
+      'supertray_users.firstName as firstName',
+      'supertray_users.lastName as lastName',
+      'supertray_users.email as email',
+    )
+    .join('supertray_users', 'supertray_workspace_users.userId', 'supertray_users.id')
+    .where('supertray_workspace_users.id', id)
     .first();
   return workspaceUser;
 };
@@ -64,4 +70,16 @@ export const insertWorkspaceUserByInvites = async (
 
 export const deleteWorkspaceUserInvitesByIds = async (ids: string[], trx?: Knex.Transaction) => {
   await (trx || database).table('supertray_workspace_user_invites').whereIn('id', ids).delete();
+};
+
+export const list = () => {
+  return database
+    .table('supertray_workspace_users')
+    .select(
+      'supertray_workspace_users.*',
+      'supertray_users.firstName as firstName',
+      'supertray_users.lastName as lastName',
+      'supertray_users.email as email',
+    )
+    .join('supertray_users', 'supertray_workspace_users.userId', 'supertray_users.id');
 };

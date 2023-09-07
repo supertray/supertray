@@ -49,6 +49,12 @@ module.exports = {
 
       rules: {
         'no-console': 'warn',
+        'no-shadow': [
+          'error',
+          {
+            allow: ['Document'],
+          },
+        ],
         'import/no-default-export': 'off',
         'max-classes-per-file': 'off',
         'no-underscore-dangle': 'off',

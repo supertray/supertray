@@ -1,3 +1,6 @@
+/* eslint-disable no-empty */
+import type { WorkspaceUserWithName } from './workspace-users.schema';
+
 import { userReadSchema, userUpdateSchema } from './users.schema';
 import { errors } from '../errors';
 import { authProcedure } from '../procedures';
@@ -26,6 +29,22 @@ export const userRouter = router({
     if (!user) {
       throw errors.notFound();
     }
+    process.nextTick(async () => {
+      try {
+        const workspaceUsers: WorkspaceUserWithName[] = await ctx.db.queries.workspaceUsers
+          .list()
+          .where('userId', id);
+        workspaceUsers.forEach((wu) => {
+          ctx.ee.emit.workspaceActivity({
+            workspaceId: wu.workspaceId,
+            createdBy: id,
+            action: 'update',
+            on: 'workspace-user',
+            payload: wu,
+          });
+        });
+      } catch (e) {}
+    });
     return user;
   }),
 });

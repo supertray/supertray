@@ -13,6 +13,7 @@ import { publicProcedure } from '../procedures';
 import { router } from '../trpc';
 import {
   createAccessToken,
+  createUuid,
   futureUtcMilliseconds,
   readableTimeToMilliseconds,
   wait,
@@ -34,11 +35,11 @@ const createEmailToken = (expiresIn: ReadableTime) => {
   };
 };
 
-const getHeaders = (req: IncomingMessage) => {
+const getHeaders = (req?: IncomingMessage) => {
   return {
-    ipAddress: req.headers['x-real-ip'] || undefined,
-    userAgent: req.headers['user-agent'] || undefined,
-    origin: req.headers.origin || undefined,
+    ipAddress: req?.headers['x-real-ip'] || undefined,
+    userAgent: req?.headers['user-agent'] || undefined,
+    origin: req?.headers.origin || undefined,
   };
 };
 
@@ -166,14 +167,16 @@ export const authRouter = router({
       await ctx.db.client.table('supertray_sessions').where('id', session.id).delete();
       throw errors.unauthorized();
     }
+    const nextSessionId = createUuid();
     const { accessToken, expiration, refreshToken, refreshTokenExpiration } = createAccessToken(
       session.user.id,
-      session.id,
+      nextSessionId,
     );
     await ctx.db.client
       .table('supertray_sessions')
       .where('id', session.id)
       .update({
+        id: nextSessionId,
         token: refreshToken,
         expiresAt: new Date(refreshTokenExpiration),
         ...getHeaders(ctx.req),

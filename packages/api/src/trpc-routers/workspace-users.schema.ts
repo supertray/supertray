@@ -1,3 +1,5 @@
+import type { User } from './users.schema';
+
 import { z } from 'zod';
 
 import { createZodMongoLikeQueryValueSchema } from '../utils';
@@ -15,6 +17,8 @@ export const workspaceUserSchema = z.object({
 });
 
 export type WorkspaceUser = z.infer<typeof workspaceUserSchema>;
+
+export type WorkspaceUserWithName = WorkspaceUser & Pick<User, 'firstName' | 'lastName' | 'email'>;
 
 export const workspaceUserCreateSchema = z.object({
   workspaceId: z.string().uuid(),

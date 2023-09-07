@@ -13,7 +13,7 @@ export type ContextWebSocket = ws & { accessToken?: string };
 const t = initTRPC
   .context<
     Context & {
-      req: IncomingMessage;
+      req?: IncomingMessage;
       ws?: ContextWebSocket;
     }
   >()

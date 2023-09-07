@@ -37,7 +37,10 @@ const queryValueObjectSchema = z.object({
 
 type QueryValueObject = z.infer<typeof queryValueObjectSchema>;
 
-const innerQuerySchema = z.record(z.union([queryValueSchema, queryValueObjectSchema]));
+const innerQuerySchema = z.record(
+  z.union([queryValueSchema, queryValueObjectSchema.optional()]),
+  z.string(),
+);
 
 type InnerQuery = z.infer<typeof innerQuerySchema>;
 
@@ -50,8 +53,8 @@ type AndOrQuery = z.infer<typeof andOrQuerySchema>;
 
 export const mongoLikeQuerySchema = z.union([
   z.object({
-    $and: z.array(z.union([innerQuerySchema, andOrQuerySchema])),
-    $or: z.array(z.union([innerQuerySchema, andOrQuerySchema])),
+    $and: z.array(z.union([innerQuerySchema, andOrQuerySchema])).optional(),
+    $or: z.array(z.union([innerQuerySchema, andOrQuerySchema])).optional(),
   }),
   innerQuerySchema,
 ]);
@@ -60,10 +63,13 @@ export type MongoLikeQuery = z.infer<typeof mongoLikeQuerySchema>;
 
 export function mongoToKnexQuery<Q extends MongoLikeQuery | QueryValueObject>(
   qb: Knex.QueryBuilder,
-  query: Q,
+  query: Q | undefined,
   prefixKey?: string,
   parentKey?: string,
 ) {
+  if (!query) {
+    return;
+  }
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   Object.keys(query).forEach((key) => {
     if (key === '$and' || key === '$or') {
@@ -104,6 +110,32 @@ export function mongoToKnexQuery<Q extends MongoLikeQuery | QueryValueObject>(
     if (isPlainObject(value)) {
       return mongoToKnexQuery(qb, value as QueryValueObject, prefixKey, key);
     }
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     return qb.where(fieldKey, '=', value);
   });
 }
+
+export const mongoToKnexOrder = (
+  order: { [key: string]: 'asc' | 'desc' } | undefined,
+  defaultOrder?: { [key: string]: 'asc' | 'desc' },
+) => {
+  const knexOrder: { column: string; order: 'asc' | 'desc' }[] = [];
+  if (order) {
+    Object.keys(order).forEach((key) => {
+      knexOrder.push({
+        column: key,
+        order: order[key],
+      });
+    });
+  }
+  if (!knexOrder.length && defaultOrder) {
+    Object.keys(defaultOrder).forEach((key) => {
+      knexOrder.push({
+        column: key,
+        order: defaultOrder[key],
+      });
+    });
+  }
+  return knexOrder;
+};

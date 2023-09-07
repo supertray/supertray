@@ -26,6 +26,7 @@ const server = createServer((req, res) => {
   if (req.url?.startsWith('/api/upload')) {
     uploadRouter(req, res, (storagePath) => {
       ctx.logger.info(storagePath);
+      trpcRouter.createCaller(ctx);
     });
     return;
   }

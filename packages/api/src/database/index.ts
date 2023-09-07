@@ -1,4 +1,11 @@
-import type { LoginToken, User, Workspace, WorkspaceUser, WorkspaceUserInvite } from '../schema';
+import type {
+  Document,
+  LoginToken,
+  User,
+  Workspace,
+  WorkspaceUser,
+  WorkspaceUserInvite,
+} from '../schema';
 
 import knex from 'knex';
 
@@ -13,5 +20,6 @@ declare module 'knex/types/tables' {
     supertray_workspaces: Workspace;
     supertray_workspace_users: WorkspaceUser;
     supertray_workspace_user_invites: WorkspaceUserInvite;
+    supertray_documents: Document;
   }
 }

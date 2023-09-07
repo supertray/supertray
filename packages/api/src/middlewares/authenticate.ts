@@ -2,11 +2,12 @@ import type { AuthSessionWithUserAndWorkspaces } from '../schema';
 
 import { AbilityBuilder, createMongoAbility } from '@casl/ability';
 
+import { ctx as context } from '../context';
 import { env } from '../env';
 import { errors } from '../errors';
 import { middleware } from '../trpc';
 import { getPermissionsQuery } from '../utils';
-import { checkPermission } from '../utils/permissions';
+import { applyPermissionQueryToKnex, checkPermission } from '../utils/permissions';
 
 const defineAbilitiesFor = (session: AuthSessionWithUserAndWorkspaces) => {
   const { can, build } = new AbilityBuilder(createMongoAbility);
@@ -20,7 +21,7 @@ const defineAbilitiesFor = (session: AuthSessionWithUserAndWorkspaces) => {
     can('create', 'workspace');
   }
 
-  const ownerWorkspaceIds = workspaces.filter((w) => w.role === 'owner').map((w) => w.id);
+  // const ownerWorkspaceIds = workspaces.filter((w) => w.role === 'owner').map((w) => w.id);
   const adminWorkspaceIds = workspaces
     .filter((w) => ['owner', 'admin'].includes(w.role))
     .map((w) => w.id);
@@ -31,28 +32,26 @@ const defineAbilitiesFor = (session: AuthSessionWithUserAndWorkspaces) => {
 
   can('read', 'workspaceUser', { workspaceId: { $in: allWorkspaceIds } });
   can('update', 'workspaceUser', ['role', 'suspended'], {
-    $or: [
-      {
-        workspaceId: { $in: adminWorkspaceIds },
-        role: { $nin: ['owner'] },
-      },
-      {
-        workspaceId: { $in: ownerWorkspaceIds },
-        userId: { $ne: user.id },
-      },
-    ],
+    workspaceId: { $in: adminWorkspaceIds },
+    userId: { $ne: user.id },
+    role: { $nin: ['owner'] },
   });
 
   can('manage', 'workspaceUserInvite', { workspaceId: { $in: adminWorkspaceIds } });
 
+  can('listen', 'events.onWorkspaceActivity', { workspaceId: { $in: allWorkspaceIds } });
+
+  can('read', 'documents', { workspaceId: { $in: allWorkspaceIds } });
+  can('create', 'documents', { workspaceId: { $in: allWorkspaceIds } });
+  can('update', 'documents', { workspaceId: { $in: allWorkspaceIds } });
+
   return build();
 };
 
-export const authenticate = middleware(async ({ ctx, next }) => {
-  let bearerToken = ctx.req.headers.authorization;
-  const webSocketAccessToken = ctx.ws?.accessToken;
-  if (webSocketAccessToken) {
-    bearerToken = `Bearer ${webSocketAccessToken}`;
+export const authenticateToken = async (headerToken?: string, wsToken?: string) => {
+  let bearerToken = headerToken;
+  if (wsToken) {
+    bearerToken = `Bearer ${wsToken}`;
   }
   if (!bearerToken || !(typeof bearerToken === 'string') || !bearerToken.startsWith('Bearer ')) {
     throw errors.unauthorized();
@@ -62,11 +61,26 @@ export const authenticate = middleware(async ({ ctx, next }) => {
     throw errors.unauthorized();
   }
   try {
-    const { session, jwt } = await ctx.db.queries.auth.getSessionByAccessToken(token);
+    const { session, jwt } = await context.db.queries.auth.getSessionByAccessToken(token);
     if (!session || !jwt.exp) {
       throw errors.unauthorized();
     }
     const casl = defineAbilitiesFor(session);
+    return {
+      casl,
+      session,
+    };
+  } catch (e) {
+    throw errors.unauthorized();
+  }
+};
+
+export const authenticate = middleware(async ({ ctx, next }) => {
+  try {
+    const { casl, session } = await authenticateToken(
+      ctx.req?.headers.authorization,
+      ctx.ws?.accessToken,
+    );
     return await next({
       ctx: {
         ...ctx,
@@ -75,6 +89,7 @@ export const authenticate = middleware(async ({ ctx, next }) => {
           casl,
           can: checkPermission(casl),
           getPermissionsQuery: getPermissionsQuery(casl),
+          applyPermissionQuery: applyPermissionQueryToKnex,
         },
       },
     });

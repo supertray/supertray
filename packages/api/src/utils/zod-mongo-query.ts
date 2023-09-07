@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from 'zod';
 
 import { logger } from '../logger';
@@ -74,6 +75,28 @@ export type ZodMongoQuerySchema<
     [key: string]: z.ZodTypeAny;
   },
 > = z.ZodUnion<[ZodMongoInnerQuerySchema<T>, ZodMongoInnerAndOrQuerySchema<T>]>;
+
+export type ZodMongoOrderSchema<
+  T extends {
+    [key: string]: z.ZodTypeAny;
+  },
+> = z.ZodObject<{ [k in keyof T]: z.ZodOptional<z.ZodLiteral<'asc' | 'desc'>> }, 'strict'>;
+
+export const createZodMongoLikeOrderSchema = <
+  T extends {
+    [key: string]: z.ZodTypeAny;
+  },
+>(
+  schema: z.ZodObject<T>,
+) => {
+  const querySchema = {};
+  Object.keys(schema.shape).forEach((key) => {
+    Object.assign(querySchema, {
+      [key]: z.enum(['asc', 'desc']).optional(),
+    });
+  });
+  return z.object(querySchema).strict() as ZodMongoOrderSchema<T>;
+};
 
 const createZodQueryValueObjectSchema = <T extends z.ZodTypeAny>(zodSchemaType: T) => {
   let schema = zodSchemaType;

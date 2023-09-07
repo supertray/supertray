@@ -2,38 +2,24 @@ import type { FileInfo } from 'busboy';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Readable } from 'stream';
 
-import { randomBytes } from 'crypto';
-
+import { TRPCError } from '@trpc/server';
 import createBusboy from 'busboy';
 import { z } from 'zod';
 
+import { ctx } from '../context';
+import { authenticateToken } from '../middlewares';
 import { storage } from '../storage';
-import { createUuid } from '../utils';
+import { trpcRouter } from '../trpc-router';
+import { mimeTypeSchema } from '../trpc-routers/documents.schema';
 
 const fileParseSchema = z.object({
   workspaceId: z.string().uuid(),
   filename: z.string(),
   encoding: z.string(),
-  mimeType: z.enum([
-    'image/png',
-    'image/jpeg',
-    'image/tiff',
-    'application/pdf',
-    // word
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    // excel
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    // powerpoint
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    // text
-    'text/plain',
-  ]),
+  mimeType: mimeTypeSchema,
 });
 
-export function parse(req: IncomingMessage, workspaceId: string) {
+export function parse(req: IncomingMessage, workspaceId?: string) {
   return new Promise<{
     file: Readable;
     fileInfo: z.infer<typeof fileParseSchema>;
@@ -43,6 +29,7 @@ export function parse(req: IncomingMessage, workspaceId: string) {
       headers: req.headers,
       limits: {
         files: 1, // allow only a single upload at a time.
+        fileSize: 500 * 1024 * 1024, // 500 MiB
       },
       highWaterMark: 5 * 1024 * 1024, // 5 MiB
     });
@@ -59,7 +46,6 @@ export function parse(req: IncomingMessage, workspaceId: string) {
         busboy.removeListener('file', onFile);
         return { file, fileInfo: parsedFileInfo, storagePath };
       };
-      // TODO: implement fileInfo validation with zod
       parseFile()
         .then((result) => {
           // eslint-disable-next-line no-use-before-define
@@ -96,27 +82,49 @@ export const uploadRouter = async (
   res: ServerResponse<IncomingMessage>,
   onUploaded: (storagePath: string) => void,
 ) => {
-  const url = new URL(req.url!, 'http://localhost');
-  const workspaceId = url.searchParams.get('workspaceId');
-  // TODO: implement auth header check
-  res.setHeader('Content-Type', 'application/json');
   try {
-    const { storagePath } = await parse(req, workspaceId!);
+    res.setHeader('Content-Type', 'application/json');
+    const { session } = await authenticateToken(req.headers.authorization);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const url = new URL(req.url!, 'http://localhost');
+    const workspaceId = url.searchParams.get('workspaceId') || undefined;
+    const { storagePath, fileInfo } = await parse(req, workspaceId);
     onUploaded(storagePath);
+    const document = await trpcRouter.createCaller(ctx).document.internalCreate({
+      workspaceId: fileInfo.workspaceId,
+      mimeType: fileInfo.mimeType,
+      title: fileInfo.filename.split('.').slice(0, -1).join('.'),
+      file: storagePath,
+      filePdf: storagePath,
+      content: '',
+      size: 1,
+      createdBy: session.userId,
+    });
     res.statusCode = 200;
     return res.end(
       JSON.stringify({
         success: true,
+        document,
         error: undefined,
       }),
     );
   } catch (e) {
+    ctx.logger.error(e);
     if (e instanceof z.ZodError) {
       res.statusCode = 400;
       return res.end(
         JSON.stringify({
-          error: e,
           success: false,
+          error: e,
+        }),
+      );
+    }
+    if (e instanceof TRPCError && e.code === 'UNAUTHORIZED') {
+      res.statusCode = 401;
+      return res.end(
+        JSON.stringify({
+          success: false,
+          error: e,
         }),
       );
     }

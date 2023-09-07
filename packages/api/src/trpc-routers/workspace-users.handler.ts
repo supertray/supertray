@@ -1,4 +1,4 @@
-import type { WorkspaceUser } from './workspace-users.schema';
+import type { WorkspaceUser, WorkspaceUserWithName } from './workspace-users.schema';
 
 import {
   workspaceUserInviteCreateSchema,
@@ -43,16 +43,9 @@ export const workspaceUserRouter = router({
       firstName: string;
       lastName: string;
       email: string;
-    })[] = await ctx.db.client
-      .table('supertray_workspace_users')
-      .select(
-        'supertray_workspace_users.*',
-        'supertray_users.firstName as firstName',
-        'supertray_users.lastName as lastName',
-        'supertray_users.email as email',
-      )
+    })[] = await ctx.db.queries.workspaceUsers
+      .list()
       .where('workspaceId', workspaceId)
-      .join('supertray_users', 'supertray_workspace_users.userId', 'supertray_users.id')
       .andWhere((qb) => mongoToKnexQuery(qb, query, 'supertray_workspace_users'));
     return workspaceUsers;
   }),
@@ -70,11 +63,25 @@ export const workspaceUserRouter = router({
       .table('supertray_workspace_users')
       .where('id', id)
       .update({
-        ...payload,
+        role: payload.role || workspaceUser.role,
+        suspended: payload.suspended ?? workspaceUser.suspended,
         updatedAt: new Date(),
       })
       .returning('*');
-    return updatedWorkspaceUser;
+    const result: WorkspaceUserWithName = {
+      ...updatedWorkspaceUser,
+      firstName: workspaceUser.firstName,
+      lastName: workspaceUser.lastName,
+      email: workspaceUser.email,
+    };
+    ctx.ee.emit.workspaceActivity({
+      workspaceId: workspaceUser.workspaceId,
+      createdBy: ctx.session.user.id,
+      action: 'update',
+      on: 'workspace-user',
+      payload: result,
+    });
+    return result;
   }),
   invite: authProcedure.input(workspaceUserInviteCreateSchema).mutation(async ({ ctx, input }) => {
     const { workspaceId, ...payload } = input;

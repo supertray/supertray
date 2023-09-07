@@ -5,7 +5,7 @@ import { WebSocket as ws } from 'ws';
 
 import { database } from './database';
 import * as queries from './database/queries';
-import { ee } from './emitter';
+import * as ee from './emitter';
 import { env } from './env';
 import { errors } from './errors';
 import { logger } from './logger';
@@ -21,6 +21,7 @@ export const ctx = {
   mailer,
   errors,
   ee,
+  external: false,
 };
 
 export type Context = inferAsyncReturnType<() => typeof ctx>;
