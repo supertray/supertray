@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_URL")
+}
+
+model InternalKnexMigrations {
+  id             Int       @id @default(autoincrement())
+  name           String?   @db.VarChar(255)
+  batch          Int?
+  migration_time DateTime? @db.Timestamptz(6)
+
+  @@map("knex_migrations")
+}
+
+model InternalKnexMigrationsLock {
+  index     Int  @id @default(autoincrement())
+  is_locked Int?
+
+  @@map("knex_migrations_lock")
+}
+
+model Document {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String    @db.Uuid
+  title       String    @db.VarChar(255)
+  content     String
+  file        String    @db.VarChar(255)
+  filePdf     String    @db.VarChar(255)
+  mimeType    String    @db.VarChar(255)
+  size        Int
+  createdBy   String    @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @db.Timestamptz(6)
+  user        User      @relation(fields: [createdBy], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "supertray_documents_createdby_foreign")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "supertray_documents_workspaceid_foreign")
+
+  @@map("supertray_documents")
+}
+
+model LoginToken {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @db.VarChar(8)
+  expiresAt DateTime @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "supertray_login_tokens_userid_foreign")
+
+  @@index([token], map: "supertray_login_tokens_token_index")
+  @@map("supertray_login_tokens")
+}
+
+model Session {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  token     String   @db.VarChar(96)
+  userId    String   @db.Uuid
+  expiresAt DateTime @db.Timestamptz(6)
+  ipAddress String?  @db.VarChar(45)
+  userAgent String?  @db.VarChar(255)
+  origin    String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "supertray_sessions_userid_foreign")
+
+  @@index([token], map: "supertray_sessions_token_index")
+  @@map("supertray_sessions")
+}
+
+model WorkspaceUserInvite {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String    @db.Uuid
+  email       String    @db.VarChar(255)
+  role        String    @db.VarChar(255)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @db.Timestamptz(6)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "supertray_workspace_user_invites_workspaceid_foreign")
+
+  @@unique([workspaceId, email], map: "supertray_workspace_user_invites_workspaceid_email_unique")
+  @@map("supertray_workspace_user_invites")
+}
+
+model WorkspaceUser {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String    @db.Uuid
+  userId      String?   @db.Uuid
+  role        String    @default("user")
+  suspended   Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @db.Timestamptz(6)
+  user        User?     @relation(fields: [userId], references: [id], onUpdate: NoAction, map: "supertray_workspace_users_userid_foreign")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "supertray_workspace_users_workspaceid_foreign")
+
+  @@unique([workspaceId, userId], map: "supertray_workspace_users_workspaceid_userid_unique")
+  @@map("supertray_workspace_users")
+}
+
+model Workspace {
+  id             String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name           String                @db.VarChar(255)
+  createdAt      DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime              @default(now()) @db.Timestamptz(6)
+  documents      Document[]
+  userInvites    WorkspaceUserInvite[]
+  workspaceUsers WorkspaceUser[]
+
+  @@map("supertray_workspaces")
+}
+
+model User {
+  id             String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email          String          @unique(map: "supertray_users_email_unique") @db.VarChar(255)
+  firstName      String          @db.VarChar(255)
+  lastName       String          @db.VarChar(255)
+  createdAt      DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime        @default(now()) @db.Timestamptz(6)
+  documents      Document[]
+  loginTokens    LoginToken[]
+  sessions       Session[]
+  workspaceUsers WorkspaceUser[]
+
+  @@map("supertray_users")
+}

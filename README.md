@@ -16,7 +16,8 @@ Supertray will be built with the following technologies:
   - [TypeScript](https://www.typescriptlang.org/)
   - [trpc](https://trpc.io/)
   - [zod](https://github.com/colinhacks/zod)
-  - [Knex](https://knexjs.org/)
+  - [Knex](https://knexjs.org/) used for migrations
+  - [Prisma](https://www.prisma.io/) used for database operations
   - [Postgres](https://www.postgresql.org/)
   - [Redis](https://redis.io/)
   - [@tweedegolf/storage-abstraction](https://github.com/tweedegolf/storage-abstraction)

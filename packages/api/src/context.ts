@@ -3,7 +3,7 @@ import type { NodeHTTPCreateContextFnOptions } from '@trpc/server/adapters/node-
 
 import { WebSocket as ws } from 'ws';
 
-import { database } from './database';
+import { prisma } from './database';
 import * as queries from './database/queries';
 import * as ee from './emitter';
 import { env } from './env';
@@ -15,8 +15,9 @@ export const ctx = {
   env,
   logger,
   db: {
-    client: database,
+    // client: database,
     queries,
+    prisma,
   },
   mailer,
   errors,

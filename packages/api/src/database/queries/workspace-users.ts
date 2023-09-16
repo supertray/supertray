@@ -1,85 +1,129 @@
-import type { WorkspaceUserInvite, WorkspaceUserWithName } from '../../schema';
-import type { Knex } from 'knex';
+import type { PrismaTransactionClient } from '..';
+import type { WorkspaceUserInvite } from '../../schema';
+import type { Prisma } from '@prisma/client';
 
-import { database } from '..';
+import { prisma } from '..';
 
-export const getWorkspaceUserById = async (id: string, trx?: Knex.Transaction) => {
-  const workspaceUser: WorkspaceUserWithName = await (trx || database)
-    .table('supertray_workspace_users')
-    .select(
-      'supertray_workspace_users.*',
-      'supertray_users.firstName as firstName',
-      'supertray_users.lastName as lastName',
-      'supertray_users.email as email',
-    )
-    .join('supertray_users', 'supertray_workspace_users.userId', 'supertray_users.id')
-    .where('supertray_workspace_users.id', id)
-    .first();
+export const getWorkspaceUserById = async (id: string) => {
+  const workspaceUser = await prisma.workspaceUser.findUnique({
+    where: {
+      id,
+    },
+    include: {
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+  });
   return workspaceUser;
 };
 
-export const getWorkspaceUserInviteById = async (id: string, trx?: Knex.Transaction) => {
-  const workspaceUserInvite: (WorkspaceUserInvite & { workspaceName: string }) | undefined = await (
-    trx || database
-  )
-    .table('supertray_workspace_user_invites')
-    .select('supertray_workspace_user_invites.*', 'supertray_workspaces.name as workspaceName')
-    .where('supertray_workspace_user_invites.id', id)
-    .join(
-      'supertray_workspaces',
-      'supertray_workspace_user_invites.workspaceId',
-      'supertray_workspaces.id',
-    )
-    .first();
+export const getWorkspaceUserInviteById = async (id: string, trx?: PrismaTransactionClient) => {
+  const workspaceUserInvite = await (trx || prisma).workspaceUserInvite.findUnique({
+    where: {
+      id,
+    },
+    include: {
+      workspace: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
   return workspaceUserInvite;
 };
 
-export const getWorkspaceUserInvitesByEmail = (email: string, trx?: Knex.Transaction) => {
-  return (trx || database)
-    .table('supertray_workspace_user_invites')
-    .select('*')
-    .where('supertray_workspace_user_invites.email', email);
+export const getWorkspaceUserInvitesByEmail = async (
+  email: string,
+  trx?: PrismaTransactionClient,
+) => {
+  const workspaceUserInvites = await (trx || prisma).workspaceUserInvite.findMany({
+    where: {
+      email,
+    },
+    include: {
+      workspace: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+  return workspaceUserInvites;
 };
 
 export const insertWorkspaceUserByInvites = async (
   invites: WorkspaceUserInvite[],
   userId: string,
-  trx?: Knex.Transaction,
+  trx?: PrismaTransactionClient,
 ) => {
-  const workspaceUsers = await (trx || database)
-    .table('supertray_workspace_users')
-    .insert(
-      invites.map((invite) => ({
-        id: invite.id,
-        workspaceId: invite.workspaceId,
-        userId,
-        role: invite.role,
-        suspended: false,
-      })),
-    )
-    .returning('*');
-  await (trx || database)
-    .table('supertray_workspace_user_invites')
-    .whereIn(
-      'id',
-      invites.map((invite) => invite.id),
-    )
-    .delete();
+  const prismaClient = trx || prisma;
+  await prismaClient.workspaceUser.createMany({
+    data: invites.map((invite) => ({
+      id: invite.id,
+      workspaceId: invite.workspaceId,
+      userId,
+      role: invite.role,
+      suspended: false,
+    })),
+  });
+  await prismaClient.workspaceUserInvite.deleteMany({
+    where: {
+      id: {
+        in: invites.map((invite) => invite.id),
+      },
+    },
+  });
+  const workspaceUsers = await prismaClient.workspaceUser.findMany({
+    where: {
+      id: {
+        in: invites.map((invite) => invite.id),
+      },
+    },
+    include: {
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+  });
   return workspaceUsers;
 };
 
-export const deleteWorkspaceUserInvitesByIds = async (ids: string[], trx?: Knex.Transaction) => {
-  await (trx || database).table('supertray_workspace_user_invites').whereIn('id', ids).delete();
+export const deleteWorkspaceUserInvitesByIds = async (
+  ids: string[],
+  trx?: PrismaTransactionClient,
+) => {
+  await (trx || prisma).workspaceUserInvite.deleteMany({
+    where: {
+      id: {
+        in: ids,
+      },
+    },
+  });
 };
 
-export const list = () => {
-  return database
-    .table('supertray_workspace_users')
-    .select(
-      'supertray_workspace_users.*',
-      'supertray_users.firstName as firstName',
-      'supertray_users.lastName as lastName',
-      'supertray_users.email as email',
-    )
-    .join('supertray_users', 'supertray_workspace_users.userId', 'supertray_users.id');
+export const list = (where?: Prisma.WorkspaceUserFindManyArgs['where']) => {
+  return prisma.workspaceUser.findMany({
+    where,
+    include: {
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+  });
 };

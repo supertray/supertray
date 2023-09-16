@@ -1,25 +1,11 @@
-import type {
-  Document,
-  LoginToken,
-  User,
-  Workspace,
-  WorkspaceUser,
-  WorkspaceUserInvite,
-} from '../schema';
+import type { Prisma } from '@prisma/client';
+import type { DefaultArgs } from '@prisma/client/runtime/library';
 
-import knex from 'knex';
+import { PrismaClient } from '@prisma/client';
 
-import { config } from '../knex';
+export const prisma = new PrismaClient();
 
-export const database = knex(config);
-
-declare module 'knex/types/tables' {
-  interface Tables {
-    supertray_users: User;
-    supertray_login_tokens: LoginToken;
-    supertray_workspaces: Workspace;
-    supertray_workspace_users: WorkspaceUser;
-    supertray_workspace_user_invites: WorkspaceUserInvite;
-    supertray_documents: Document;
-  }
-}
+export type PrismaTransactionClient = Omit<
+  PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;

@@ -5,7 +5,12 @@ const tableName = 'supertray_workspace_user_invites';
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable(tableName, (table) => {
     table.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary();
-    table.uuid('workspaceId').references('id').inTable('supertray_workspaces').onDelete('CASCADE');
+    table
+      .uuid('workspaceId')
+      .references('id')
+      .inTable('supertray_workspaces')
+      .onDelete('CASCADE')
+      .notNullable();
     table.string('email').notNullable();
     table.string('role').notNullable();
     table.timestamps(true, true, true);

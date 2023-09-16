@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { createZodMongoLikeOrderSchema, createZodMongoLikeQuerySchema } from '../utils';
+import { createZodPrismaFilterSchema, createZodPrismaOrderSchema } from '../utils';
 
 export const mimeTypeSchema = z.enum([
   'image/png',
@@ -50,10 +50,10 @@ export const documentInternalCreateSchema = z.object({
 });
 
 export const documentQuerySchema = z.object({
-  query: createZodMongoLikeQuerySchema(documentSchema).optional(),
-  $order: createZodMongoLikeOrderSchema(documentSchema).optional(),
-  $limit: z.number().min(1).max(50).default(20),
-  $skip: z.number().min(0).default(0),
+  where: createZodPrismaFilterSchema(documentSchema).default({}),
+  orderBy: createZodPrismaOrderSchema(documentSchema).optional(),
+  take: z.number().min(1).max(50).default(20),
+  skip: z.number().min(0).default(0),
 });
 
 export type DocumentQuery = z.infer<typeof documentQuerySchema>;

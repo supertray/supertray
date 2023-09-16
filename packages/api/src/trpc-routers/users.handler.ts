@@ -1,5 +1,4 @@
-/* eslint-disable no-empty */
-import type { WorkspaceUserWithName } from './workspace-users.schema';
+import type { WorkspaceUserWithUser } from './workspace-users.schema';
 
 import { userReadSchema, userUpdateSchema } from './users.schema';
 import { errors } from '../errors';
@@ -8,7 +7,7 @@ import { router } from '../trpc';
 
 export const userRouter = router({
   read: authProcedure.input(userReadSchema).query(async ({ input, ctx }) => {
-    ctx.abilities.can('read', 'user', { id: input });
+    ctx.abilities.can('read', 'User', { id: input });
     const user = await ctx.db.queries.users.getById(input);
     if (!user) {
       throw errors.notFound();
@@ -17,32 +16,37 @@ export const userRouter = router({
   }),
   update: authProcedure.input(userUpdateSchema).mutation(async ({ input, ctx }) => {
     const { id, ...payload } = input;
-    ctx.abilities.can('update', 'user', { id });
-    const [user] = await ctx.db.client
-      .table('supertray_users')
-      .where('id', id)
-      .update({
-        ...payload,
-        updatedAt: new Date(),
-      })
-      .returning('*');
+    ctx.abilities.can('update', 'User', { id });
+    const user = await ctx.db.prisma.user.update({
+      where: {
+        id,
+      },
+      data: payload,
+    });
     if (!user) {
       throw errors.notFound();
     }
     process.nextTick(async () => {
       try {
-        const workspaceUsers: WorkspaceUserWithName[] = await ctx.db.queries.workspaceUsers
-          .list()
-          .where('userId', id);
+        const workspaceUsers = await ctx.db.queries.workspaceUsers.list({
+          userId: id,
+        });
         workspaceUsers.forEach((wu) => {
+          const { user: theUser, ...wUser } = wu;
+          if (!theUser) return;
           ctx.ee.emit.workspaceActivity({
             workspaceId: wu.workspaceId,
             createdBy: id,
             action: 'update',
             on: 'workspace-user',
-            payload: wu,
+            payload: {
+              ...wUser,
+              role: wUser.role as WorkspaceUserWithUser['role'],
+              user: theUser,
+            },
           });
         });
+        // eslint-disable-next-line no-empty
       } catch (e) {}
     });
     return user;

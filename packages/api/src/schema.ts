@@ -5,4 +5,4 @@ export * from './trpc-routers/workspace-users.schema';
 export * from './trpc-routers/documents.schema';
 export * from './trpc-routers/events.schema';
 
-export { type MongoLikeQuery, mongoLikeQuerySchema } from './utils/mongo-to-knex-query';
+export { type AppAbility } from './utils/permissions';

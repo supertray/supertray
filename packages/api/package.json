@@ -9,13 +9,15 @@
     "start": "node ./lib/index.mjs",
     "test": "echo \"Error: no test specified\" && exit 1",
     "migration:make": "knex migrate:make",
-    "migrate": "knex migrate:latest"
+    "migrate": "knex migrate:latest && prisma db pull && prisma generate"
   },
   "author": "Phil Schaffarzyk <phil.schaffarzyk@gmail.com>",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@casl/ability": "^6.5.0",
+    "@casl/prisma": "^1.4.1",
     "@koa/cors": "^4.0.0",
+    "@prisma/client": "^5.2.0",
     "@trpc/server": "^10.38.0",
     "@tweedegolf/storage-abstraction": "^1.4.6",
     "bcrypt": "^5.1.1",
@@ -47,6 +49,7 @@
     "@types/nodemailer": "^6.4.9",
     "@types/ws": "^8.5.5",
     "nodemon": "^3.0.1",
+    "prisma": "^5.2.0",
     "ts-node": "^10.9.1",
     "tsup": "^7.2.0",
     "typescript": "^5.2.2"

@@ -2,14 +2,14 @@ import type { User } from './users.schema';
 
 import { z } from 'zod';
 
-import { createZodMongoLikeQueryValueSchema } from '../utils';
+import { createZodPrismaFilterValueSchema } from '../utils';
 
 const workspaceUserRole = z.enum(['owner', 'admin', 'user']);
 
 export const workspaceUserSchema = z.object({
   id: z.string().uuid(),
   workspaceId: z.string().uuid(),
-  userId: z.string().uuid(),
+  userId: z.string().uuid().nullable(),
   role: workspaceUserRole,
   suspended: z.boolean(),
   createdAt: z.date().transform((date) => new Date(date)),
@@ -18,7 +18,9 @@ export const workspaceUserSchema = z.object({
 
 export type WorkspaceUser = z.infer<typeof workspaceUserSchema>;
 
-export type WorkspaceUserWithName = WorkspaceUser & Pick<User, 'firstName' | 'lastName' | 'email'>;
+export type WorkspaceUserWithUser = WorkspaceUser & {
+  user: Pick<User, 'firstName' | 'lastName' | 'email'>;
+};
 
 export const workspaceUserCreateSchema = z.object({
   workspaceId: z.string().uuid(),
@@ -35,8 +37,8 @@ export const workspaceUserUpdateSchema = z.object({
 
 export const workspaceUserQuerySchema = z.object({
   workspaceId: z.string().uuid(),
-  suspended: createZodMongoLikeQueryValueSchema(z.boolean()),
-  role: createZodMongoLikeQueryValueSchema(workspaceUserRole),
+  suspended: createZodPrismaFilterValueSchema(z.boolean()),
+  role: createZodPrismaFilterValueSchema(workspaceUserRole),
 });
 
 export const workspaceUserInviteSchema = z.object({

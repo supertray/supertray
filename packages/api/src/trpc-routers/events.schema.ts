@@ -18,9 +18,11 @@ export const workspaceActivitySchema = z.union([
   baseActivitySchema.extend({
     on: z.literal('workspace-user'),
     payload: workspaceUserSchema.extend({
-      firstName: z.string(),
-      lastName: z.string(),
-      email: z.string().email(),
+      user: z.object({
+        firstName: z.string(),
+        lastName: z.string(),
+        email: z.string().email(),
+      }),
     }),
   }),
   baseActivitySchema.extend({

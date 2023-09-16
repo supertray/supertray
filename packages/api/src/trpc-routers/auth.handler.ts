@@ -1,3 +1,4 @@
+import type { WorkspaceUser } from './workspace-users.schema';
 import type { ReadableTime } from '../utils';
 import type { IncomingMessage } from 'http';
 
@@ -37,7 +38,7 @@ const createEmailToken = (expiresIn: ReadableTime) => {
 
 const getHeaders = (req?: IncomingMessage) => {
   return {
-    ipAddress: req?.headers['x-real-ip'] || undefined,
+    ipAddress: (req?.headers['x-real-ip'] as string | undefined) || undefined,
     userAgent: req?.headers['user-agent'] || undefined,
     origin: req?.headers.origin || undefined,
   };
@@ -50,34 +51,40 @@ export const authRouter = router({
     if (user) {
       throw errors.badRequest('Email not available');
     }
-    const trx = await ctx.db.client.transaction();
     try {
-      const [newUser] = await ctx.db.client
-        .table('supertray_users')
-        .insert({
-          email: input.email,
-          firstName: input.firstName,
-          lastName: input.lastName,
-        })
-        .transacting(trx)
-        .returning('*');
-      const workspaceUserInvites =
-        await ctx.db.queries.workspaceUsers.getWorkspaceUserInvitesByEmail(input.email, trx);
-      if (workspaceUserInvites.length > 0) {
-        await ctx.db.queries.workspaceUsers.insertWorkspaceUserByInvites(
-          workspaceUserInvites,
-          newUser.id,
-          trx,
-        );
-        await ctx.db.queries.workspaceUsers.deleteWorkspaceUserInvitesByIds(
-          workspaceUserInvites.map((i) => i.id),
-          trx,
-        );
-      }
-      await trx.commit();
-      return newUser;
+      const newUserData = await ctx.db.prisma.$transaction(async (trxClient) => {
+        const newUser = await trxClient.user.create({
+          data: {
+            email: input.email,
+            firstName: input.firstName,
+            lastName: input.lastName,
+          },
+        });
+        const workspaceUserInvites =
+          await ctx.db.queries.workspaceUsers.getWorkspaceUserInvitesByEmail(
+            input.email,
+            trxClient,
+          );
+        if (workspaceUserInvites.length > 0) {
+          await ctx.db.queries.workspaceUsers.insertWorkspaceUserByInvites(
+            workspaceUserInvites.map((wi) => {
+              return {
+                ...wi,
+                role: wi.role as WorkspaceUser['role'],
+              };
+            }),
+            newUser.id,
+            trxClient,
+          );
+          await ctx.db.queries.workspaceUsers.deleteWorkspaceUserInvitesByIds(
+            workspaceUserInvites.map((i) => i.id),
+            trxClient,
+          );
+        }
+        return newUser;
+      });
+      return newUserData;
     } catch (e) {
-      await trx.rollback();
       ctx.logger.error(e);
       throw errors.internalServerError();
     }
@@ -93,10 +100,12 @@ export const authRouter = router({
       throw errors.tooManyRequests(`${Math.ceil((lastSentOtp - diff) / 1000)}s`);
     }
     const { emailToken, expiration } = createEmailToken(ctx.env.AUTH_OTP_EXPIRES_IN);
-    await ctx.db.client.table('supertray_login_tokens').insert({
-      userId: user.id,
-      token: emailToken,
-      expiresAt: new Date(expiration),
+    await ctx.db.prisma.loginToken.create({
+      data: {
+        userId: user.id,
+        token: emailToken,
+        expiresAt: new Date(expiration),
+      },
     });
     await ctx.mailer.send({
       to: input.email,
@@ -114,22 +123,22 @@ export const authRouter = router({
     const { id, accessToken, expiration, refreshToken, refreshTokenExpiration } = createAccessToken(
       loginToken.userId,
     );
-    await ctx.db.client.transaction(async (trx) => {
-      try {
-        await trx.table('supertray_login_tokens').where('id', loginToken.id).delete();
-        await trx.table('supertray_sessions').insert({
+    await ctx.db.prisma.$transaction([
+      ctx.db.prisma.loginToken.delete({
+        where: {
+          id: loginToken.id,
+        },
+      }),
+      ctx.db.prisma.session.create({
+        data: {
           id,
           userId: loginToken.userId,
           token: refreshToken,
           expiresAt: new Date(refreshTokenExpiration),
           ...getHeaders(ctx.req),
-        });
-        await trx.commit();
-      } catch (e) {
-        await trx.rollback();
-        throw e;
-      }
-    });
+        },
+      }),
+    ]);
     return {
       accessToken,
       refreshToken,
@@ -164,7 +173,11 @@ export const authRouter = router({
     }
     if (session.token !== input.refreshToken) {
       await ctx.db.queries.auth.deleteExpiredSessionsByUserId(session.userId);
-      await ctx.db.client.table('supertray_sessions').where('id', session.id).delete();
+      await ctx.db.prisma.session.delete({
+        where: {
+          id: session.id,
+        },
+      });
       throw errors.unauthorized();
     }
     const nextSessionId = createUuid();
@@ -172,15 +185,18 @@ export const authRouter = router({
       session.user.id,
       nextSessionId,
     );
-    await ctx.db.client
-      .table('supertray_sessions')
-      .where('id', session.id)
-      .update({
+    await ctx.db.prisma.session.update({
+      where: {
+        id: session.id,
+      },
+      data: {
         id: nextSessionId,
         token: refreshToken,
         expiresAt: new Date(refreshTokenExpiration),
         ...getHeaders(ctx.req),
-      });
+      },
+    });
+
     return {
       accessToken,
       refreshToken,

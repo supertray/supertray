@@ -15,8 +15,13 @@ export async function up(knex: Knex): Promise<void> {
 
   await knex.schema.createTable('supertray_login_tokens', (table) => {
     table.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary();
-    table.uuid('userId').references('id').inTable('supertray_users').onDelete('CASCADE');
-    table.string('token', 8).index();
+    table
+      .uuid('userId')
+      .references('id')
+      .inTable('supertray_users')
+      .onDelete('CASCADE')
+      .notNullable();
+    table.string('token', 8).index().notNullable();
     table.timestamp('expiresAt').notNullable();
     table.timestamps(true, true, true);
   });

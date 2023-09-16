@@ -1,24 +1,25 @@
 import type { AuthSessionWithUserAndWorkspaces } from '../schema';
+import type { AppAbility } from '../utils/permissions';
 
-import { AbilityBuilder, createMongoAbility } from '@casl/ability';
+import { AbilityBuilder } from '@casl/ability';
+import { createPrismaAbility } from '@casl/prisma';
 
 import { ctx as context } from '../context';
 import { env } from '../env';
 import { errors } from '../errors';
 import { middleware } from '../trpc';
-import { getPermissionsQuery } from '../utils';
-import { applyPermissionQueryToKnex, checkPermission } from '../utils/permissions';
+import { checkPermission, getPrismaFilter } from '../utils/permissions';
 
 const defineAbilitiesFor = (session: AuthSessionWithUserAndWorkspaces) => {
-  const { can, build } = new AbilityBuilder(createMongoAbility);
+  const { can, build } = new AbilityBuilder<AppAbility>(createPrismaAbility);
 
   const { user, workspaces } = session;
 
-  can('read', 'user', { id: user.id });
-  can('update', 'user', { id: user.id });
+  can('read', 'User', { id: user.id });
+  can('update', 'User', { id: user.id });
 
   if (env.WORKSPACE_ALLOW_PUBLIC_CREATION) {
-    can('create', 'workspace');
+    can('create', 'Workspace');
   }
 
   // const ownerWorkspaceIds = workspaces.filter((w) => w.role === 'owner').map((w) => w.id);
@@ -27,23 +28,23 @@ const defineAbilitiesFor = (session: AuthSessionWithUserAndWorkspaces) => {
     .map((w) => w.id);
   const allWorkspaceIds = workspaces.map((w) => w.id);
 
-  can('read', 'workspace', { id: { $in: allWorkspaceIds } });
-  can('update', 'workspace', { id: { $in: adminWorkspaceIds } });
+  can('read', 'Workspace', { id: { in: allWorkspaceIds } });
+  can('update', 'Workspace', { id: { in: adminWorkspaceIds } });
 
-  can('read', 'workspaceUser', { workspaceId: { $in: allWorkspaceIds } });
-  can('update', 'workspaceUser', ['role', 'suspended'], {
-    workspaceId: { $in: adminWorkspaceIds },
-    userId: { $ne: user.id },
-    role: { $nin: ['owner'] },
+  can('read', 'WorkspaceUser', { workspaceId: { in: allWorkspaceIds } });
+  can('update', 'WorkspaceUser', ['role', 'suspended'], {
+    workspaceId: { in: adminWorkspaceIds },
+    userId: { not: user.id },
+    role: { notIn: ['owner'] },
   });
 
-  can('manage', 'workspaceUserInvite', { workspaceId: { $in: adminWorkspaceIds } });
+  can('manage', 'WorkspaceUserInvite', { workspaceId: { in: adminWorkspaceIds } });
 
-  can('listen', 'events.onWorkspaceActivity', { workspaceId: { $in: allWorkspaceIds } });
+  can('listen', 'Events_OnWorkspaceActivity', { workspaceId: { in: allWorkspaceIds } });
 
-  can('read', 'documents', { workspaceId: { $in: allWorkspaceIds } });
-  can('create', 'documents', { workspaceId: { $in: allWorkspaceIds } });
-  can('update', 'documents', { workspaceId: { $in: allWorkspaceIds } });
+  can('read', 'Document', { workspaceId: { in: allWorkspaceIds } });
+  can('create', 'Document', { workspaceId: { in: allWorkspaceIds } });
+  can('update', 'Document', { workspaceId: { in: allWorkspaceIds } });
 
   return build();
 };
@@ -88,8 +89,7 @@ export const authenticate = middleware(async ({ ctx, next }) => {
         abilities: {
           casl,
           can: checkPermission(casl),
-          getPermissionsQuery: getPermissionsQuery(casl),
-          applyPermissionQuery: applyPermissionQueryToKnex,
+          getPrismaFilter: getPrismaFilter(casl),
         },
       },
     });

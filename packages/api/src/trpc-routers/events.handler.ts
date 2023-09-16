@@ -10,7 +10,7 @@ export const eventRouter = router({
   onWorkspaceActivity: authProcedure
     .input(z.string().uuid())
     .subscription(async ({ ctx, input }) => {
-      ctx.abilities.can('listen', 'events.onWorkspaceActivity', { workspaceId: input });
+      ctx.abilities.can('listen', 'Events_OnWorkspaceActivity', { workspaceId: input });
 
       return observable<WorkspaceActivity>((emit) => {
         const onActivity = (data: WorkspaceActivity) => {

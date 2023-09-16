@@ -1,8 +1,7 @@
-import type { AuthSessionWithUserAndWorkspaces, Session, User, WorkspaceUser } from '../../schema';
-import type { Knex } from 'knex';
+import type { AuthSessionWithUserAndWorkspaces, WorkspaceUser } from '../../schema';
+import type { JwtPayload } from 'jsonwebtoken';
 
-import { listWorkspacesByUserId } from './workspaces';
-import { database } from '..';
+import { prisma } from '..';
 import { verifyAccessToken } from '../../utils';
 
 const emptyResponse = {
@@ -10,37 +9,74 @@ const emptyResponse = {
   jwt: undefined,
 };
 
+type SessionByAccessTokenResponse =
+  | {
+      session: undefined;
+      jwt: undefined;
+    }
+  | {
+      session: AuthSessionWithUserAndWorkspaces;
+      jwt: JwtPayload;
+    };
+
 export const getSessionByAccessToken = async (
   accessToken: string,
   ignoreExpiration?: boolean,
-  trx?: Knex.Transaction,
-) => {
+): Promise<SessionByAccessTokenResponse> => {
   const jwt = verifyAccessToken(accessToken, ignoreExpiration);
   if (!jwt.jti) {
     return emptyResponse;
   }
-  const session: AuthSessionWithUserAndWorkspaces | undefined = await (trx || database)
-    .table('supertray_sessions')
-    .select(['supertray_sessions.*', (trx || database).raw('to_json(supertray_users.*) as user')])
-    .where('supertray_sessions.id', jwt.jti)
-    .join('supertray_users', 'supertray_sessions.userId', 'supertray_users.id')
-    .first();
+  const session = await prisma.session.findUnique({
+    where: {
+      id: jwt.jti,
+    },
+    include: {
+      user: {
+        include: {
+          workspaceUsers: {
+            include: {
+              workspace: true,
+            },
+          },
+        },
+      },
+    },
+  });
   if (!session) return emptyResponse;
-  session.workspaces = await listWorkspacesByUserId(session.userId, trx);
-  if (new Date(session.expiresAt).getTime() < Date.now()) {
-    await (trx || database).table('supertray_sessions').where('id', session.id).delete();
+  const workspaces = session.user.workspaceUsers.map((wu) => ({
+    ...wu.workspace,
+    role: wu.role as WorkspaceUser['role'],
+  }));
+  const user = {
+    ...session.user,
+    workspaceUsers: undefined,
+  };
+  if (!session.expiresAt || session.expiresAt.getTime() < Date.now()) {
+    await prisma.session.delete({
+      where: {
+        id: session.id,
+      },
+    });
     return emptyResponse;
   }
   return {
-    session,
+    session: {
+      ...session,
+      user,
+      workspaces,
+    },
     jwt,
   };
 };
 
-export const deleteExpiredSessionsByUserId = async (userId: string, trx?: Knex.Transaction) => {
-  await (trx || database)
-    .table('supertray_sessions')
-    .where('userId', userId)
-    .andWhere('expiresAt', '<', new Date())
-    .delete();
+export const deleteExpiredSessionsByUserId = async (userId: string) => {
+  await prisma.session.deleteMany({
+    where: {
+      userId,
+      expiresAt: {
+        lt: new Date(),
+      },
+    },
+  });
 };

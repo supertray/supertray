@@ -30,6 +30,7 @@ export const createWebsocketServer = <TRouter extends AnyRouter>(options: {
   });
 
   wss.on('connection', (socket: ContextWebSocket) => {
+    console.log('connection access token', socket.accessToken);
     socket.once('close', () => {
       // eslint-disable-next-line no-param-reassign
       socket.accessToken = undefined;
